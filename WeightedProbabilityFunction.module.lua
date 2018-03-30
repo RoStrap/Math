@@ -1,4 +1,5 @@
 -- Generates option-picker functions from relative probabilities
+-- @readme https://github.com/RoStrap/WeightedProbabilityFunction/blob/master/README.md
 -- @author Validark
 
 local WeightedProbabilities = {}
