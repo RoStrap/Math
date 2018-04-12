@@ -36,8 +36,8 @@ return {
 			RelativeWeights[i] = RelativeWeights[i] / TotalWeight
 		end
 
-		local function Pick()
-			local Picked = math.random()
+		local function Pick(Picked)
+			Picked = Picked or math.random()
 
 			for i = 1, n do
 				Picked = Picked - RelativeWeights[i]
