@@ -1,3 +1,5 @@
+-- Level and Experience class
+
 local DEFAULT_AWARD = 1
 
 local floor = math.floor
