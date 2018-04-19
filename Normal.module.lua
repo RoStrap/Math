@@ -1,4 +1,5 @@
 -- Random numbers along a Normal curve
+-- @original https://github.com/Quenty/NevermoreEngine/tree/version2/Modules/Math
 
 local tau = 2 * math.pi
 local cos = math.cos
