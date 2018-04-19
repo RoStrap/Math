@@ -1,3 +1,4 @@
+# WeightedProbabilityFunction
 Example:
 ```lua
 local require = require(game:GetService("ReplicatedStorage"):WaitForChild("Resources")).LoadLibrary
@@ -34,4 +35,22 @@ for i = 1, 10000 do
 end
 
 table.foreach(t, print)
+```
+
+# Leveler
+This is a super simple library. Run this little demo and you will learn everything you need to know.
+```lua
+local require = require(game:GetService("ReplicatedStorage"):WaitForChild("Resources")).LoadLibrary
+local Leveler = require("Leveler")
+
+local Kills = Leveler.new()
+table.foreach(Kills, print)
+print()
+
+Kills:Award()
+table.foreach(Kills, print)
+print()
+
+Kills:Award(6)
+table.foreach(Kills, print)
 ```
