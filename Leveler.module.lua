@@ -1,5 +1,9 @@
 -- Level and Experience class
 
+local Resources = require(game:GetService("ReplicatedStorage"):WaitForChild("Resources"))
+local Debug = Resources:LoadLibrary("Debug")
+local Table = Resources:LoadLibrary("Table")
+
 local DEFAULT_AWARD = 1
 
 local floor = math.floor
@@ -33,7 +37,8 @@ local function LevelFromExperience(Exp)
 	end
 end
 
-local Leveler = {__index = {}}
+local Leveler = {}
+Leveler.__index = {}
 
 function Leveler.new(Points)
 	return setmetatable({}, Leveler):Award(Points or 0)
@@ -41,7 +46,7 @@ end
 
 function Leveler.__index:Award(Points)
 	if Points and (type(Points) ~= "number" or Points < 0) then
-		error("[Leveler] Cannot award points " .. typeof(Points) .. " " .. tostring(Points))
+		Debug.Error("Cannot award points %s", Points)
 	end
 
 	self.Total = (self.Total or 0) + (Points or DEFAULT_AWARD)
@@ -51,4 +56,4 @@ function Leveler.__index:Award(Points)
 	return self
 end
 
-return Leveler
+return Table.Lock(Leveler)
