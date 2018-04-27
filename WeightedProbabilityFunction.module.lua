@@ -2,6 +2,8 @@
 -- @readme https://github.com/RoStrap/WeightedProbabilityFunction/blob/master/README.md
 -- @author Validark
 
+local Resources = require(game:GetService("ReplicatedStorage"):WaitForChild("Resources"))
+local Debug = Resources:LoadLibrary("Debug")
 local WeightedProbabilities = {}
 
 return {
@@ -18,8 +20,8 @@ return {
 		local RelativeWeights = {}
 
 		for Option, RelativeWeight in pairs(ProbabilityData) do
-			assert(type(RelativeWeight) == "number", "[WeightedProbability] ProbabilityData must be in the form {variant Option = number Weight}")
-			assert(RelativeWeight >= 0, "[WeightedProbability] Weights must be non-negative numbers")
+			Debug.Assert(type(RelativeWeight) == "number", "ProbabilityData must be in the form {variant Option = number Weight}")
+			Debug.Assert(RelativeWeight >= 0, "Weights must be non-negative numbers")
 
 			n = n + 1
 			TotalWeight = TotalWeight + RelativeWeight
@@ -30,7 +32,7 @@ return {
 
 		ProbabilityData = nil
 
-		assert(TotalWeight ~= 0, "[WeightedProbability] Please give an option with a weight greater than 0")
+		Debug.Assert(TotalWeight ~= 0, "Please give an option with a weight greater than 0")
 
 		for i = 1, n do
 			RelativeWeights[i] = RelativeWeights[i] / TotalWeight
