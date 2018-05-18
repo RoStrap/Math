@@ -4,9 +4,10 @@
 
 local Resources = require(game:GetService("ReplicatedStorage"):WaitForChild("Resources"))
 local Debug = Resources:LoadLibrary("Debug")
+local Table = Resources:LoadLibrary("Table")
 local WeightedProbabilities = {}
 
-return {
+return Table.Lock {
 	new = function(ProbabilityData)
 		-- @param dictionary in the form: {
 		--		[variant option1] = number Weight1;
