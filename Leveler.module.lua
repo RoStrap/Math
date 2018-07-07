@@ -36,7 +36,7 @@ local function LevelFromExperience(Exp)
 		return Lvl, Exp - (2.5 * Lvl * Lvl - 40.5 * Lvl + 360)
 	else
 		local Lvl = floor((325 + (72 * Exp - 54215) ^ 0.5) / 18)
-		return Lvl, Exp - (4.5 * Lvl * Lvl- 162.5 * Lvl + 2220)
+		return Lvl, Exp - (4.5 * Lvl * Lvl - 162.5 * Lvl + 2220)
 	end
 end
 
