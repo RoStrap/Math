@@ -1,4 +1,7 @@
 -- Level and Experience class
+-- @documentation https://rostrap.github.io/Libraries/Math/Leveler/
+-- @rostrap Leveler
+-- @author Validark
 
 local Resources = require(game:GetService("ReplicatedStorage"):WaitForChild("Resources"))
 local Debug = Resources:LoadLibrary("Debug")
@@ -26,14 +29,14 @@ local function LevelFromExperience(Exp)
 	if Exp <= 0 then
 		return 0, 0
 	elseif Exp <= 352 and Exp > 0 then --Lvl 16 or under
-		local Lvl = floor((Exp + 9)^0.5 - 3)
-		return Lvl, Exp - (Lvl ^ 2 + 6 * Lvl)
+		local Lvl = floor((Exp + 9) ^ 0.5 - 3)
+		return Lvl, Exp - (Lvl * Lvl + 6 * Lvl)
 	elseif Exp > 352 and Exp <= 1507 then
-		local Lvl = floor((81 + (40 * Exp - 7839)^0.5) * 0.1)
-		return Lvl, Exp - (2.5 * Lvl ^ 2 - 40.5 * Lvl + 360)
+		local Lvl = floor((81 + (40 * Exp - 7839) ^ 0.5) * 0.1)
+		return Lvl, Exp - (2.5 * Lvl * Lvl - 40.5 * Lvl + 360)
 	else
-		local Lvl = floor((325 + (72 * Exp - 54215)^0.5) / 18)
-		return Lvl, Exp - (4.5 * Lvl ^ 2 - 162.5 * Lvl + 2220)
+		local Lvl = floor((325 + (72 * Exp - 54215) ^ 0.5) / 18)
+		return Lvl, Exp - (4.5 * Lvl * Lvl - 162.5 * Lvl + 2220)
 	end
 end
 
