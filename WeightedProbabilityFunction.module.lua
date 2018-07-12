@@ -5,7 +5,7 @@
 local Resources = require(game:GetService("ReplicatedStorage"):WaitForChild("Resources"))
 local Debug = Resources:LoadLibrary("Debug")
 local Table = Resources:LoadLibrary("Table")
-local WeightedProbabilities = {}
+local WeightedProbabilities = setmetatable({}, {__mode = "k"})
 
 return Table.Lock {
 	new = function(ProbabilityData)
