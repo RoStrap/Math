@@ -1,6 +1,4 @@
 -- Random numbers along a Normal curve
--- @repo https://github.com/RoStrap/Math/
--- @rostrap Normal
 -- @author Validark
 -- @original https://github.com/Quenty/NevermoreEngine/tree/version2/Modules/Math
 
