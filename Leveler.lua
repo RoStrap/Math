@@ -1,4 +1,5 @@
 -- Level and Experience class
+-- @author Validark
 
 local Resources = require(game:GetService("ReplicatedStorage"):WaitForChild("Resources"))
 local Debug = Resources:LoadLibrary("Debug")
