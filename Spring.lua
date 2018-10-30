@@ -1,33 +1,10 @@
-------------------------------------------------------------------------
--- Spring.lua
--- Simulates the motion of a critically damped spring.
--- Author: fractality
---
--- API:
---   Spring Spring.new(double damp, double freq, vector pos)
---   void Spring:SetGoal(vector goal)
---   void Spring:SetFrequency(double freq)
---   void Spring:SetDampingRatio(double damp)
---   vector Spring:GetPosition()
---   vector Spring:GetVelocity()
---   vector Spring:Update(double dt)
---   void Spring:Reset(vector state)
---
--- Notes:
---   The state vector type must implement the following metamethods:
---     vector __mul(vector, double)
---     vector __add(vector, vector)
---     vector __sub(vector, vector)
-------------------------------------------------------------------------
-
-local Spring = {}
+local Spring = { }
 Spring.__index = Spring
 
-local pi = math.pi
-local exp = math.exp
+local pi = 3.1415926535898
+local e = 2.718281828459
 local sin = math.sin
 local cos = math.cos
-local sqrt = math.sqrt
 
 local EPS = 1e-4
 
@@ -35,19 +12,22 @@ function Spring.new(dampingRatio, frequency, position)
 	assert(type(dampingRatio) == "number")
 	assert(type(frequency) == "number")
 	assert(dampingRatio*frequency >= 0, "Spring does not converge")
+	
+	local self = { }
+	self.d = dampingRatio
+	self.f = frequency
+	self.g = position
+	self.p = position
+	self.v = position * 0
+	
+	setmetatable(self, Spring)
 
-	return setmetatable({
-		d = dampingRatio,
-		f = frequency,
-		g = position,
-		p = position,
-		v = position*0, -- Match the original vector type
-	}, Spring)
+	return self
 end
 
 function Spring:Reset(position)
 	self.p = position
-	self.v = position*0
+	self.v = position * 0
 end
 
 function Spring:SetGoal(newGoal)
@@ -76,13 +56,13 @@ end
 
 function Spring:Update(dt)
 	local d = self.d
-	local f = self.f*2*pi
+	local f = self.f * 6.2831853071796
 	local g = self.g
 	local p0 = self.p
 	local v0 = self.v
 
 	local offset = p0 - g
-	local decay = exp(-d*f*dt)
+	local decay = e ^ (-d*f*dt)
 
 	local p1, v1
 
@@ -91,22 +71,10 @@ function Spring:Update(dt)
 		v1 = (v0*(1 - f*dt) - offset*(f*f*dt))*decay
 
 	elseif d < 1 then -- Underdamped
-		local c = sqrt(1 - d*d)
+		local c = (1 - d*d) ^ 0.5
 
 		local i = cos(f*c*dt)
 		local j = sin(f*c*dt)
-
-		-- Damping ratios approaching 1 can cause division by small numbers.
-		-- To fix that, group terms around z=j/c and find an approximation for z.
-		-- Start with the definition of z:
-		--    z = sin(dt*f*c)/c
-		-- Substitute a=dt*f:
-		--    z = sin(a*c)/c
-		-- Take the Maclaurin expansion of z with respect to c:
-		--    z = a - (a^3*c^2)/6 + (a^5*c^4)/120 + O(c^6)
-		--    z â‰ˆ a - (a^3*c^2)/6 + (a^5*c^4)/120
-		-- Rewrite in Horner form:
-		--    z â‰ˆ a + ((a*a)*(c*c)*(c*c)/20 - c*c)*(a*a*a)/6
 
 		local z
 		if c > EPS then
@@ -116,38 +84,31 @@ function Spring:Update(dt)
 			z = a + ((a*a)*(c*c)*(c*c)/20 - c*c)*(a*a*a)/6
 		end
 
-		-- Frequencies approaching 0 present a similar problem.
-		-- We want an approximation for y as f approaches 0, where:
-		--    y = sin(dt*f*c)/(f*c)
-		-- Substitute b=dt*c:
-		--    y = sin(b*c)/b
-		-- Now reapply the process from z.
-
 		local y
-		if f*c > EPS then
-			y = j/(f*c)
+		if f * c > EPS then
+			y = j / (f * c)
 		else
-			local b = f*c
-			y = dt + ((dt*dt)*(b*b)*(b*b)/20 - b*b)*(dt*dt*dt)/6
+			local b = f * c
+			y = dt + ((dt * dt) * (b * b) * (b * b) / 20 - b * b) * (dt * dt * dt) / 6
 		end
 
-		p1 = (offset*(i + d*z) + v0*y)*decay + g
-		v1 = (v0*(i - z*d) - offset*(z*f))*decay
+		p1 = (offset * (i + d * z) + v0 * y) * decay + g
+		v1 = (v0 * (i - z * d) - offset * (z * f)) * decay
 
-	else -- Overdamped
-		local c = sqrt(d*d - 1)
+	else
+		local c = (d * d - 1) ^ 0.5
 
-		local r1 = -f*(d - c)
-		local r2 = -f*(d + c)
+		local r1 = -f * (d - c)
+		local r2 = -f * (d + c)
 
-		local co2 = (v0 - offset*r1)/(2*f*c)
+		local co2 = (v0 - offset * r1) / (2 * f * c)
 		local co1 = offset - co2
 
-		local e1 = co1*exp(r1*dt)
-		local e2 = co2*exp(r2*dt)
+		local e1 = co1 * e ^ (r1 * dt)
+		local e2 = co2 * e ^ (r2 * dt)
 
 		p1 = e1 + e2 + g
-		v1 = e1*r1 + e2*r2
+		v1 = e1 * r1 + e2 * r2
 	end
 
 	self.p = p1
