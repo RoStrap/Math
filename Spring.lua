@@ -1,8 +1,7 @@
+-- Simulates the motion of a critically damped spring
+-- @author fractality
+
 ------------------------------------------------------------------------
--- Spring.lua
--- Simulates the motion of a critically damped spring.
--- Author: fractality
---
 -- API:
 --   Spring Spring.new(double damp, double freq, vector pos)
 --   void Spring:SetGoal(vector goal)
