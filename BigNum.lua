@@ -427,11 +427,13 @@ local function ProcessAsDecimal(Bytes, Negative, Value, Power, FromBase, ToBase)
 		local PointLocation = Value:find(".", 1, true) - 1
 		local K = PointLocation + Power
 
-		Value = (Value:sub(1, PointLocation) .. Value:sub(PointLocation + 2)):sub(1, K > 0 and K or 0) .. ("0"):rep(K - #Value + 1)
+		Value = (Value:sub(1, PointLocation) .. Value:sub(PointLocation + 2)):sub(1, K > 0 and K or 0)
 
 		if Value == "" then
 			Value = "0"
 		end
+
+		return __mul(ProcessAsDecimal(Bytes, Negative, Value, nil, FromBase, ToBase), __pow(CONSTANTS[ToBase][Bytes][10], CONSTANTS[ToBase][Bytes][K - #Value], ToBase), ToBase)
 	end
 
 	local self = {(("0"):rep(Bytes - #Value) .. Value):byte(1, -1)}
@@ -500,6 +502,8 @@ function BigNum.new(Number, Bytes)
 	end
 end
 
+local DIGITS_PAST_DECIMAL = 2
+
 function BigNum:GetRange(Radix, Base)
 	-- Returns the range for a given integer number of Radix
 	-- @returns string
@@ -513,8 +517,17 @@ function BigNum:GetRange(Radix, Base)
 	end
 
 	Max[1] = (Base - Base % 2) / 2 - 1
+	local MaxString = __tostring(Max, Base)
+	local Arguments = {}
 
-	return "+/- " .. __tostring(Max, Base)
+	for i = 1, DIGITS_PAST_DECIMAL do
+		Arguments[i] = MaxString:byte(i) - Char_0
+	end
+
+	Arguments[DIGITS_PAST_DECIMAL + 1] = MaxString:byte(DIGITS_PAST_DECIMAL + 1) - Char_0 + ((MaxString:byte(DIGITS_PAST_DECIMAL + 2) - Char_0) > 4 and 1 or 0)
+	Arguments[DIGITS_PAST_DECIMAL + 2] = #MaxString - 1
+
+	return ("+/- %d." .. ("%d"):rep(DIGITS_PAST_DECIMAL) .. "e%d"):format(unpack(Arguments))
 end
 
 function BigNum:SetDefaultRadix(NumRadix)
