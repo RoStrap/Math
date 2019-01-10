@@ -67,7 +67,7 @@ local CONSTANTS_VALUE = {
 		end
 
 		self[i] = t
-		return t
+		return setmetatable(t, BigNum)
 	end
 }
 
@@ -263,6 +263,10 @@ local function __div(N, D, Base)
 		end
 	end
 
+	if not NumDigits then
+		error("Cannot divide by 0")
+	end
+
 	local Q
 	local R = N
 
@@ -374,25 +378,43 @@ local function EnsureCompatibility(Func, Unary)
 	local typeof = typeof or type
 
 	if Unary then
-		return function(a)
-			if getmetatable(a) ~= BigNum then
+		return function(a, ...)
+			local type_a = type(a)
+
+			if type_a == "number" then
+				a = BigNum.new(tostring(a))
+			elseif type_a == "string" then
+				a = BigNum.new(a)
+			elseif type_a ~= "table" or getmetatable(a) ~= BigNum then
 				error("bad argument to #1: expected BigNum, got " .. typeof(a))
 			end
 
-			return Func(a, DEFAULT_BASE)
+			return Func(a, DEFAULT_BASE, ...)
 		end
 	else
 		return function(a, b)
-			if getmetatable(a) ~= BigNum then
+			local type_a = type(a)
+
+			if type_a == "number" then
+				a = BigNum.new(tostring(a))
+			elseif type_a == "string" then
+				a = BigNum.new(a)
+			elseif type_a ~= "table" or getmetatable(a) ~= BigNum then
 				error("bad argument to #1: expected BigNum, got " .. typeof(a))
 			end
 
-			if getmetatable(b) ~= BigNum then
+			local type_b = type(b)
+
+			if type_b == "number" then
+				b = BigNum.new(tostring(b))
+			elseif type_b == "string" then
+				b = BigNum.new(b)
+			elseif type_b ~= "table" or getmetatable(b) ~= BigNum then
 				error("bad argument to #2: expected BigNum, got " .. typeof(b))
 			end
 
 			if #a ~= #b then
-				error("You cannot operate on BigNums with different bytes: " .. #a .. " and " .. #b)
+				error("You cannot operate on BigNums with different radix: " .. #a .. " and " .. #b)
 			end
 
 			return Func(a, b, DEFAULT_BASE)
@@ -400,9 +422,48 @@ local function EnsureCompatibility(Func, Unary)
 	end
 end
 
+local function GCD(m, n, Base)
+	local _0 = CONSTANTS[Base][#m][0]
+
+	while not __eq(n, _0, Base) do
+		m, n = n, __mod(m, n, Base)
+	end
+
+    return m
+end
+
+local function LCM(m, n, Base)
+	local _0 = CONSTANTS[Base][#m][0]
+    return m ~= _0 and n ~= _0 and __mul(m, n, Base) / GCD(m, n, Base) or _0
+end
+
+local Char_0 = ("0"):byte()
+
+local function toScientificNotation(self, Base, DigitsAfterDecimal)
+	DigitsAfterDecimal = DigitsAfterDecimal or 2
+
+	local MaxString = __tostring(self, Base)
+
+	if #MaxString - 2 < DigitsAfterDecimal then
+		return MaxString
+	else
+		local Arguments = {}
+
+		for i = 1, DigitsAfterDecimal do
+			Arguments[i] = MaxString:byte(i) - Char_0
+		end
+
+		Arguments[DigitsAfterDecimal + 1] = MaxString:byte(DigitsAfterDecimal + 1) - Char_0 + ((MaxString:byte(DigitsAfterDecimal + 2) - Char_0) > 4 and 1 or 0)
+		Arguments[DigitsAfterDecimal + 2] = #MaxString - 1
+
+		return ("%d." .. ("%d"):rep(DigitsAfterDecimal) .. "e%d"):format(unpack(Arguments))
+	end
+end
+
 -- Unary operators
 BigNum.__tostring = EnsureCompatibility(__tostring, true)
 BigNum.__unm = EnsureCompatibility(__unm, true)
+BigNum.__index.toScientificNotation = EnsureCompatibility(toScientificNotation, true)
 
 -- Binary operators
 BigNum.__add = EnsureCompatibility(__add)
@@ -415,7 +476,9 @@ BigNum.__mod = EnsureCompatibility(__mod)
 BigNum.__lt = EnsureCompatibility(__lt)
 BigNum.__eq = EnsureCompatibility(__eq)
 
-local Char_0 = ("0"):byte()
+-- Other operations
+BigNum.__index.GDC = EnsureCompatibility(GCD)
+BigNum.__index.LCM = EnsureCompatibility(LCM)
 
 local function ProcessAsDecimal(Bytes, Negative, Value, Power, FromBase, ToBase)
 	-- @param boolean Negative Whether the number is negative
@@ -473,6 +536,11 @@ function BigNum.new(Number, Bytes)
 
 	local Type = type(Number)
 
+	if Type == "number" then
+		Number = tostring(Number)
+		Type = "string"
+	end
+
 	if Type == "string" then
 		local n = #Number
 
@@ -502,8 +570,6 @@ function BigNum.new(Number, Bytes)
 	end
 end
 
-local DIGITS_PAST_DECIMAL = 2
-
 function BigNum:GetRange(Radix, Base)
 	-- Returns the range for a given integer number of Radix
 	-- @returns string
@@ -517,17 +583,7 @@ function BigNum:GetRange(Radix, Base)
 	end
 
 	Max[1] = (Base - Base % 2) / 2 - 1
-	local MaxString = __tostring(Max, Base)
-	local Arguments = {}
-
-	for i = 1, DIGITS_PAST_DECIMAL do
-		Arguments[i] = MaxString:byte(i) - Char_0
-	end
-
-	Arguments[DIGITS_PAST_DECIMAL + 1] = MaxString:byte(DIGITS_PAST_DECIMAL + 1) - Char_0 + ((MaxString:byte(DIGITS_PAST_DECIMAL + 2) - Char_0) > 4 and 1 or 0)
-	Arguments[DIGITS_PAST_DECIMAL + 2] = #MaxString - 1
-
-	return ("+/- %d." .. ("%d"):rep(DIGITS_PAST_DECIMAL) .. "e%d"):format(unpack(Arguments))
+	return "+/- " .. toScientificNotation(Max, Base)
 end
 
 function BigNum:SetDefaultRadix(NumRadix)
@@ -600,5 +656,128 @@ end
 function BigNum.__index:stringify(Base)
 	return (IsNegative(self, Base or DEFAULT_BASE) and "-" or " ") .. "{" .. table.concat(self, ", ") .. "}"
 end
+
+local Fraction = {}
+Fraction.__index = {}
+
+local function newFraction(Numerator, Denominator, Base)
+	if IsNegative(Denominator, Base) then
+		Numerator = __unm(Numerator, Base);
+		Denominator = __unm(Denominator, Base);
+	end
+
+	return setmetatable({
+		Numerator = Numerator;
+		Denominator = Denominator;
+	}, Fraction)
+end
+
+local function Fraction__reduce(self, Base)
+	local CommonFactor = GCD(self.Numerator, self.Denominator, Base)
+
+	self.Numerator = __div(self.Numerator, CommonFactor, Base);
+	self.Denominator = __div(self.Denominator, CommonFactor, Base);
+
+	return self
+end
+
+local function Fraction__add(a, b, Base)
+	return newFraction(__add(__mul(a.Numerator, b.Denominator, Base), __mul(b.Numerator, a.Denominator, Base), Base), __mul(a.Denominator, b.Denominator, Base), Base)
+end
+
+local function Fraction__sub(a, b, Base)
+	return newFraction(__sub(__mul(a.Numerator, b.Denominator, Base), __mul(b.Numerator, a.Denominator, Base), Base), __mul(a.Denominator, b.Denominator, Base), Base)
+end
+
+local function Fraction__mul(a, b, Base)
+	return newFraction(__mul(a.Numerator, b.Numerator, Base), __mul(a.Denominator, b.Denominator, Base), Base)
+end
+
+local function Fraction__div(a, b, Base)
+	return newFraction(__mul(a.Numerator, b.Denominator, Base), __mul(a.Denominator, b.Numerator, Base), Base)
+end
+
+local function Fraction__mod()
+	error("The modulo operation is undefined for Fractions")
+end
+
+local function Fraction__pow(self, Power, Base)
+	Power = __div(Power.Numerator, Power.Denominator, Base)
+
+	if type(Power) == "number" then
+		return newFraction(__pow(self.Numerator, Power, Base), __pow(self.Denominator, Power, Base), Base)
+	else
+		error("Cannot raise " .. __tostring(self, Base) .. " to the Power of " .. __tostring(Power, Base))
+	end
+end
+
+local function Fraction__tostring(self, Base)
+	return __tostring(self.Numerator, Base) .. " / " .. __tostring(self.Denominator, Base)
+end
+
+local function Fraction__toScientificNotation(self, Base, DigitsAfterDecimal)
+	return toScientificNotation(self.Numerator, Base, DigitsAfterDecimal) .. " / " .. toScientificNotation(self.Denominator, Base, DigitsAfterDecimal)
+end
+
+local function Fraction__lt(a, b, Base)
+	return __lt(__mul(a.Numerator, b.Denominator, Base), __mul(b.Numerator, a.Denominator, Base), Base)
+end
+
+local function Fraction__unm(a, Base)
+	return newFraction(__unm(a.Numerator, Base), a.Denominator, Base)
+end
+
+local function Fraction__eq(a, b, Base)
+	return __eq(__mul(a.Numerator, b.Denominator, Base), __mul(b.Numerator, a.Denominator, Base), Base)
+end
+
+local function EnsureFractionalCompatibility(Func, Unary)
+	local typeof = typeof or type
+
+	if Unary then
+		return function(a, ...)
+			if getmetatable(a) ~= Fraction then
+				error("bad argument to #1: expected Fraction, got " .. typeof(a))
+			end
+
+			return Func(a, DEFAULT_BASE, ...)
+		end
+	else
+		return function(a, b)
+			if getmetatable(a) ~= Fraction then
+				error("bad argument to #1: expected Fraction, got " .. typeof(a))
+			end
+
+			if getmetatable(b) ~= Fraction then
+				error("bad argument to #2: expected Fraction, got " .. typeof(b))
+			end
+
+			if #a ~= #b then
+				error("You cannot operate on Fractions with BigNums of different sizes: " .. #a .. " and " .. #b)
+			end
+
+			return Func(a, b, DEFAULT_BASE)
+		end
+	end
+end
+
+-- Unary operators
+Fraction.__tostring = EnsureFractionalCompatibility(Fraction__tostring, true)
+Fraction.__unm = EnsureFractionalCompatibility(Fraction__unm, true)
+Fraction.__index.Reduce = EnsureFractionalCompatibility(Fraction__reduce, true)
+Fraction.__index.toScientificNotation = EnsureFractionalCompatibility(Fraction__toScientificNotation, true)
+
+-- Binary operators
+Fraction.__add = EnsureFractionalCompatibility(Fraction__add)
+Fraction.__sub = EnsureFractionalCompatibility(Fraction__sub)
+Fraction.__mul = EnsureFractionalCompatibility(Fraction__mul)
+Fraction.__div = EnsureFractionalCompatibility(Fraction__div)
+Fraction.__pow = EnsureFractionalCompatibility(Fraction__pow)
+Fraction.__mod = EnsureFractionalCompatibility(Fraction__mod)
+
+Fraction.__lt = EnsureFractionalCompatibility(Fraction__lt)
+Fraction.__eq = EnsureFractionalCompatibility(Fraction__eq)
+
+BigNum.newFraction = EnsureCompatibility(newFraction)
 
 return BigNum
