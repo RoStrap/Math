@@ -553,7 +553,7 @@ function BigNum.new(Number, Bytes)
 				local _, DecimalEndPlace, Minus, Decimal, Point = Number:find("^(%-?)(%d*(%.?)%d*)")
 
 				if Decimal ~= "" and Decimal ~= "." then
-					local Power = Number:match("^[Ee](%-?%d+)$", DecimalEndPlace + 1)
+					local Power = Number:match("^[Ee]([%+%-]?%d+)$", DecimalEndPlace + 1)
 
 					if Power or DecimalEndPlace == n then
 						return ProcessAsDecimal(Bytes or DEFAULT_RADIX, Minus == "-", Power and Point == "" and Decimal .. "." or Decimal, Power, 10, DEFAULT_BASE)
